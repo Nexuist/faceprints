@@ -1,0 +1,28 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": [
+        "swift"
+      ],
+      "args": [],
+      "cwd": "${workspaceFolder:faceprints}",
+      "name": "Debug faceprints",
+      "program": "${workspaceFolder:faceprints}/.build/debug/faceprints",
+      "preLaunchTask": "swift: Build Debug faceprints"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "sourceLanguages": [
+        "swift"
+      ],
+      "args": [],
+      "cwd": "${workspaceFolder:faceprints}",
+      "name": "Release faceprints",
+      "program": "${workspaceFolder:faceprints}/.build/release/faceprints",
+      "preLaunchTask": "swift: Build Release faceprints"
+    }
+  ]
+}
