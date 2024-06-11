@@ -30,7 +30,15 @@ struct Add: ParsableCommand {
         "faceprint")
       try embeddingData.write(to: embeddingFile)
 
-      print("Added faceprint to \(labelDir.path)")
+      let output = [
+        "status": "success",
+        "message": "Added faceprint",
+        "path": labelDir.path
+      ] as [String : Any]
+      let jsonData = try JSONSerialization.data(withJSONObject: output, options: .prettyPrinted)
+      if let jsonString = String(data: jsonData, encoding: .utf8) {
+        print(jsonString)
+      }
     } catch {
       print("Error: \(error)")
     }
