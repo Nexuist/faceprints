@@ -20,6 +20,8 @@ struct Add: ParsableCommand {
     abstract: "Add a faceprint to the index."
   )
 
+  @Argument(help: "The label for the faceprint")
+  var label: String
   @OptionGroup() var args: Options
 
   mutating func run() {

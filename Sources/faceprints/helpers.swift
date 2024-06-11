@@ -1,54 +1,100 @@
 import Foundation
+import Vision
 
-func getFaceprintsDir() -> URL {
-    return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".faceprints")
+/**
+  * Crop the image to the bounding box
+  * Generate a feature print from the cropped image
+  * Generate all embeddings for the images in the label directory
+  * Calculate the average embedding for the label directory
+  * Save it to a file in the label directory called `avg.faceprint`
+*/
+
+/// Convert the input image path to a URL
+func inputImagePathToURL(_ inputImagePath: String) -> URL {
+  if inputImagePath.starts(with: "http") {
+    return URL(string: inputImagePath)!
+  } else {
+    return URL(fileURLWithPath: inputImagePath)
+  }
 }
 
-func createLabelDir(label: String) throws -> URL {
-    let labelDir = getFaceprintsDir().appendingPathComponent(label)
-    if !FileManager.default.fileExists(atPath: labelDir.path) {
-        try FileManager.default.createDirectory(at: labelDir, withIntermediateDirectories: true, attributes: nil)
-    } else {
-        throw NSError(domain: "Label directory already exists", code: 1, userInfo: nil)
-    }
-    return labelDir
+/// Create a directory if it does not exist
+func createDirectoryIfNotExists(directory: URL) {
+  if !FileManager.default.fileExists(atPath: directory.path) {
+    try! FileManager.default.createDirectory(
+      at: directory, withIntermediateDirectories: true, attributes: nil)
+  }
 }
 
-func listLabels() throws -> [String] {
-    return try FileManager.default.contentsOfDirectory(atPath: getFaceprintsDir().path)
+/// Create a label directory if it does not exist
+func createLabelDirectoryIfNotExists(label: String) -> URL {
+  let homeDirectory = FileManager.default.homeDirectoryForCurrentUser.appending(path: ".faceprints")
+  createDirectoryIfNotExists(directory: homeDirectory)
+  let labelDirectory = homeDirectory.appendingPathComponent(label)
+  createDirectoryIfNotExists(directory: labelDirectory)
+  return labelDirectory
 }
 
-func removeLabelDir(label: String) throws {
-    let labelDir = getFaceprintsDir().appendingPathComponent(label)
-    try FileManager.default.removeItem(at: labelDir)
+/// Retrieve all images in the label directory
+func imagesForLabel(_ label: String) -> [URL] {
+  let labelDirectory = createLabelDirectoryIfNotExists(label: label)
+  let contents = try! FileManager.default.contentsOfDirectory(
+    at: labelDirectory, includingPropertiesForKeys: nil)
+  return contents.filter {
+    $0.pathExtension == "jpg" || $0.pathExtension == "jpeg" || $0.pathExtension == "png"
+  }
 }
 
-func printDict(_ dict: [String: Any]) {
-    do {
-        let jsonData = try JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted)
-        if let jsonString = String(data: jsonData, encoding: .utf8) {
-            print(jsonString)
-        }
-    } catch {
-        print("Error serializing JSON: \(error)")
-    }
+func facesForImage(_ inputImagePath: String) throws -> [VNFaceObservation] {
+  return try performRequest(
+    request: VNDetectFaceRectanglesRequest(),
+    inputImagePath: args.input
+  )
 }
 
+func embeddingForFace(inputImagePath: String, face: VNFaceObservation) throws -> [Float] {
+  // pass
+}
+
+func averageAndSaveAllEmbeddings(_ embeddings: [[Float]], label: String) -> [Float] {
+  // pass
+  // Save result to {labelDir}/avg.faceprint
+}
+
+func loadEmbeddings() -> [String: [Float]] {
+  // pass
+}
+
+/// Perform a Vision request on the input image and return the results as an array of the specified type
+func performRequest<T: VNObservation>(request: VNRequest, inputImagePath: String) throws -> [T] {
+  let inputURL = inputImagePathToURL(inputImagePath)
+  let handler = VNImageRequestHandler(url: inputURL)
+  // Get the type of what the request results are
+  try handler.perform([request])
+  guard let results = request.results else {
+    return []
+  }
+  return results as! [T]
+}
+
+/// Crop the input image using the specified bounding box and return the result as a CGImage
 func cropImage(inputImagePath: String, boundingBox: CGRect) throws -> CGImage {
-    let url = URL(fileURLWithPath: inputImagePath)
-    let ciImage = CIImage(contentsOf: url)!
-    let context = CIContext(options: nil)
-    let cgImage = context.createCGImage(ciImage, from: ciImage.extent)!
+  let inputURL = inputImagePathToURL(inputImagePath)
+  let inputImage = CIImage(contentsOf: inputURL)!
+  let adjustedBoundingBox = CGRect(
+    x: boundingBox.origin.x * inputImage.extent.width,
+    y: boundingBox.origin.y * inputImage.extent.height,
+    width: boundingBox.width * inputImage.extent.width,
+    height: boundingBox.height * inputImage.extent.height
+  )
+  let croppedImage = inputImage.cropped(to: adjustedBoundingBox)
+  let context = CIContext(options: nil)
+  let cgImage = context.createCGImage(croppedImage, from: croppedImage.extent)!
+  return cgImage
+}
 
-    let width = CGFloat(cgImage.width)
-    let height = CGFloat(cgImage.height)
-
-    let cropRect = CGRect(
-        x: boundingBox.origin.x * width,
-        y: (1 - boundingBox.origin.y - boundingBox.height) * height,
-        width: boundingBox.width * width,
-        height: boundingBox.height * height
-    )
-
-    return cgImage.cropping(to: cropRect)!
+/// Print a JSON dictionary to stdout
+func printDict(_ dict: [String: Any]) {
+  let jsonData = try! JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted)
+  print(String(data: jsonData, encoding: .utf8)!)
 }

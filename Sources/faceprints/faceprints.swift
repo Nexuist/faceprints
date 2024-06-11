@@ -6,8 +6,6 @@ let VERSION = "1.0.0"
 struct Options: ParsableArguments {
   @Argument(help: "The filepath of the input image")
   var input: String
-  @Argument(help: "The label for the faceprint")
-  var label: String?
 }
 
 @main
@@ -19,7 +17,7 @@ struct faceprints: AsyncParsableCommand {
       Classify.self,
       Add.self,
       List.self,
-      Remove.self
+      Remove.self,
     ],
     defaultSubcommand: Classify.self
   )
