@@ -18,3 +18,14 @@ func removeLabelDir(label: String) throws {
     let labelDir = getFaceprintsDir().appendingPathComponent(label)
     try FileManager.default.removeItem(at: labelDir)
 }
+
+func printDict(_ dict: [String: Any]) {
+    do {
+        let jsonData = try JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted)
+        if let jsonString = String(data: jsonData, encoding: .utf8) {
+            print(jsonString)
+        }
+    } catch {
+        print("Error serializing JSON: \(error)")
+    }
+}
