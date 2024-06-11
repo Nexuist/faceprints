@@ -10,10 +10,7 @@ struct List: ParsableCommand {
   mutating func run() {
     do {
       let labels = try listLabels()
-      print("Faceprints:")
-      for label in labels {
-        print("- \(label)")
-      }
+      printDict(["faceprints": labels])
     } catch {
       print("Error: \(error)")
     }

@@ -35,10 +35,7 @@ struct Add: ParsableCommand {
         "message": "Added faceprint",
         "path": labelDir.path
       ] as [String : Any]
-      let jsonData = try JSONSerialization.data(withJSONObject: output, options: .prettyPrinted)
-      if let jsonString = String(data: jsonData, encoding: .utf8) {
-        print(jsonString)
-      }
+      printDict(output)
     } catch {
       print("Error: \(error)")
     }

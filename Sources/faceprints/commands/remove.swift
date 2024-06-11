@@ -12,7 +12,7 @@ struct Remove: ParsableCommand {
   mutating func run() {
     do {
       try removeLabelDir(label: args.label)
-      print("Removed faceprint from \(labelDir.path)")
+      printDict(["status": "success", "message": "Removed faceprint", "label": args.label])
     } catch {
       print("Error: \(error)")
     }
