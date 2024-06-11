@@ -6,7 +6,11 @@ func getFaceprintsDir() -> URL {
 
 func createLabelDir(label: String) throws -> URL {
     let labelDir = getFaceprintsDir().appendingPathComponent(label)
-    try FileManager.default.createDirectory(at: labelDir, withIntermediateDirectories: true, attributes: nil)
+    if !FileManager.default.fileExists(atPath: labelDir.path) {
+        try FileManager.default.createDirectory(at: labelDir, withIntermediateDirectories: true, attributes: nil)
+    } else {
+        throw NSError(domain: "Label directory already exists", code: 1, userInfo: nil)
+    }
     return labelDir
 }
 

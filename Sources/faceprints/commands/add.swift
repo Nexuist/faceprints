@@ -11,7 +11,10 @@ struct Add: ParsableCommand {
 
   mutating func run() {
     do {
-      let labelDir = try createLabelDir(label: args.label)
+      guard let label = args.label else {
+        throw NSError(domain: "Label is required", code: 1, userInfo: nil)
+      }
+      let labelDir = try createLabelDir(label: label)
 
       let faceImage = try cropImage(
         inputImagePath: args.input, boundingBox: VNFaceObservation().boundingBox)
