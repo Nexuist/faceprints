@@ -2,6 +2,19 @@ import ArgumentParser
 import Foundation
 import Vision
 
+/**
+  Add a faceprint to the index
+  * Check to see if the index directory exists; make it if not
+  * Check to see if the label directory exists; make it if not
+  * Crop the image to the bounding box
+  * Generate a feature print from the cropped image
+  * Retrieve all images in the label directory
+  * Generate all embeddings for the images in the label directory
+  * Calculate the average embedding for the label directory
+  * Save it to a file in the label directory called `avg.faceprint`
+  * Return a JSON response with the `success` field (true or false) and a `count` of how many images there are
+*/
+
 struct Add: ParsableCommand {
   static var configuration = CommandConfiguration(
     abstract: "Add a faceprint to the index."
