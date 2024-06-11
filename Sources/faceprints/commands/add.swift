@@ -1,7 +1,6 @@
 import ArgumentParser
 import Foundation
 import Vision
-import Helpers
 
 struct Add: ParsableCommand {
   static var configuration = CommandConfiguration(
@@ -29,11 +28,12 @@ struct Add: ParsableCommand {
         "faceprint")
       try embeddingData.write(to: embeddingFile)
 
-      let output = [
-        "status": "success",
-        "message": "Added faceprint",
-        "path": labelDir.path
-      ] as [String : Any]
+      let output =
+        [
+          "status": "success",
+          "message": "Added faceprint",
+          "path": labelDir.path,
+        ] as [String: Any]
       printDict(output)
     } catch {
       print("Error: \(error)")
