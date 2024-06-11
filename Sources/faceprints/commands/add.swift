@@ -1,6 +1,7 @@
 import ArgumentParser
 import Foundation
 import Vision
+import Helpers
 
 struct Add: ParsableCommand {
   static var configuration = CommandConfiguration(
@@ -11,9 +12,7 @@ struct Add: ParsableCommand {
 
   mutating func run() {
     do {
-      let faceprintsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".faceprints")
-      let labelDir = faceprintsDir.appendingPathComponent(args.label)
-      try FileManager.default.createDirectory(at: labelDir, withIntermediateDirectories: true, attributes: nil)
+      let labelDir = try createLabelDir(label: args.label)
 
       let faceImage = try? cropImage(inputImagePath: args.input, boundingBox: VNFaceObservation().boundingBox)
       if faceImage == nil { throw SeeVError.noSubjectFound }

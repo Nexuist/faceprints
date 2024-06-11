@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import Helpers
 
 struct List: ParsableCommand {
   static var configuration = CommandConfiguration(
@@ -8,8 +9,7 @@ struct List: ParsableCommand {
 
   mutating func run() {
     do {
-      let faceprintsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".faceprints")
-      let labels = try FileManager.default.contentsOfDirectory(atPath: faceprintsDir.path)
+      let labels = try listLabels()
       print("Faceprints:")
       for label in labels {
         print("- \(label)")

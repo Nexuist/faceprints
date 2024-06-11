@@ -1,5 +1,6 @@
 import ArgumentParser
 import Foundation
+import Helpers
 
 struct Remove: ParsableCommand {
   static var configuration = CommandConfiguration(
@@ -10,9 +11,7 @@ struct Remove: ParsableCommand {
 
   mutating func run() {
     do {
-      let faceprintsDir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".faceprints")
-      let labelDir = faceprintsDir.appendingPathComponent(args.label)
-      try FileManager.default.removeItem(at: labelDir)
+      try removeLabelDir(label: args.label)
       print("Removed faceprint from \(labelDir.path)")
     } catch {
       print("Error: \(error)")
