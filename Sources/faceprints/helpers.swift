@@ -29,3 +29,22 @@ func printDict(_ dict: [String: Any]) {
         print("Error serializing JSON: \(error)")
     }
 }
+
+func cropImage(inputImagePath: String, boundingBox: CGRect) throws -> CGImage {
+    let url = URL(fileURLWithPath: inputImagePath)
+    let ciImage = CIImage(contentsOf: url)!
+    let context = CIContext(options: nil)
+    let cgImage = context.createCGImage(ciImage, from: ciImage.extent)!
+
+    let width = CGFloat(cgImage.width)
+    let height = CGFloat(cgImage.height)
+
+    let cropRect = CGRect(
+        x: boundingBox.origin.x * width,
+        y: (1 - boundingBox.origin.y - boundingBox.height) * height,
+        width: boundingBox.width * width,
+        height: boundingBox.height * height
+    )
+
+    return cgImage.cropping(to: cropRect)!
+}

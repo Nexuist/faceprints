@@ -20,7 +20,7 @@ struct Add: ParsableCommand {
       let featurePrint: [VNFeaturePrintObservation] = try performRequest(
         request: request, inputImagePath: faceImage)
 
-      let embedding = featurePrint!.first!.data.withUnsafeBytes {
+      let embedding = featurePrint.first!.data.withUnsafeBytes {
         Array($0.bindMemory(to: Float.self))
       }
       let embeddingData = try JSONSerialization.data(withJSONObject: embedding, options: [])
