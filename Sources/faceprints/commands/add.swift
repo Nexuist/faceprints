@@ -13,7 +13,7 @@ struct Add: ParsableCommand {
 
   mutating func run() {
     do {
-      let faceObservations = try facesForImage(args.input)
+      let faceObservations = try facesForImage(.path(args.input))
       if faceObservations.isEmpty {
         throw FaceprintsError.noFaceFound
       }
@@ -21,13 +21,14 @@ struct Add: ParsableCommand {
         throw FaceprintsError.multipleFacesFound
       }
       let face = faceObservations[0]
-      let outputURL = try saveCroppedFace(args.input, face: face, label: label)
+      let outputURL = try saveCroppedFaceToLabel(.path(args.input), face: face, label: label)
       recalculateAverageEmbedding(label: label)
       printDict([
         "operation": "add",
         "label": label,
         "input": args.input,
         "output": outputURL.path,
+        "faceConfidence": face.confidence,
         "boundingBox": [
           "x": face.boundingBox.origin.x,
           "y": face.boundingBox.origin.y,

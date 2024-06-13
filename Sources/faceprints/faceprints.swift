@@ -1,7 +1,7 @@
 import ArgumentParser
 import Foundation
 
-let VERSION = "1.0.0"
+let VERSION = "1.1.2"
 
 struct Options: ParsableArguments {
   @Argument(help: "The filepath of the input image")
@@ -19,6 +19,7 @@ struct faceprints: AsyncParsableCommand {
       Add.self,
       List.self,
       Remove.self,
+      Extract.self,
     ],
     defaultSubcommand: Classify.self
   )

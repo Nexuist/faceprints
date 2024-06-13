@@ -19,52 +19,50 @@ struct Classify: ParsableCommand {
   mutating func run() {
     do {
       // Get all the average faceprints
-      let labelEmbeddings = getLabelEmbeddings()
-      let faces = try facesForImage(args.input)
-      if plaintext {
-        guard let face = faces.first else {
-          print("No faces found")
-          return
-        }
-        let croppedFace = try croppedFace(args.input, face: face)
-        let embedding = try embeddingForImage(croppedFace)
-        var closestLabel: String?
-        var closestDistance: Float = 0
-        for (label, labelEmbedding) in labelEmbeddings {
-          let distance = cosineSimilarity(embedding, labelEmbedding.map { Float($0) })
-          if distance > closestDistance {
-            closestLabel = label
-            closestDistance = distance
-          }
-        }
-        if closestLabel != nil {
-          print(closestLabel!)
-        }
-        return
+      let faceprints = getFaceprints()
+      let faces = try facesForImage(.path(args.input))
+      guard !faces.isEmpty else {
+        throw FaceprintsError.noFaceFound
       }
-      // Print the JSON response
-      printDict([
-        "operation": "classify",
-        "input": args.input,
-        "faces": try faces.map {
-          let croppedFace = try croppedFace(args.input, face: $0)
-          let embedding = try embeddingForImage(croppedFace)
-          var ranks: [[String: Float]] = []
-          for (label, labelEmbedding) in labelEmbeddings {
-            let distance = cosineSimilarity(embedding, labelEmbedding.map { Float($0) })
-            ranks.append([label: distance])
-          }
-          return [
-            "boundingBox": [
-              "x": $0.boundingBox.origin.x,
-              "y": $0.boundingBox.origin.y,
-              "width": $0.boundingBox.width,
-              "height": $0.boundingBox.height,
-            ],
-            "ranks": ranks,
-          ]
-        },
-      ])
+      var ranks: [[String: Float]] = []
+      for face in faces {
+        let croppedFace = try croppedFace(.path(args.input), face: face)
+        let faceprint = try embeddingForImage(.raw(croppedFace))
+        var faceRanks: [String: Float] = [:]
+        for (label, labelFaceprint) in faceprints {
+          let distance = cosineSimilarity(faceprint, labelFaceprint)
+          faceRanks[label] = distance
+        }
+        ranks.append(faceRanks)
+      }
+      if plaintext {
+        // Find the closest label to the first face
+        let faceRanks = ranks[0]
+        let closestLabel = faceRanks.max { $0.value < $1.value }!.key
+        let closestDistance = faceRanks[closestLabel]!
+        print("\(closestLabel) (\(closestDistance))")
+      } else {
+        // Print the JSON response
+        printDict([
+          "operation": "classify",
+          "input": args.input,
+          "faces": faces.enumerated().map { (index, face) in
+            let topLabel = ranks[index].max { $0.value < $1.value }!.key
+            return [
+              "boundingBox": [
+                "x": face.boundingBox.origin.x,
+                "y": face.boundingBox.origin.y,
+                "width": face.boundingBox.width,
+                "height": face.boundingBox.height,
+              ],
+              "faceConfidence": face.confidence,
+              "topLabel": topLabel,
+              "topConfidence": ranks[index][topLabel]!,
+              "ranks": ranks[index],
+            ]
+          },
+        ])
+      }
     } catch {
       print("Error: \(error)")
     }
