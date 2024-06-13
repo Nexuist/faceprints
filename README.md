@@ -1,6 +1,6 @@
 # Faceprints
 
-Faceprints is a Swift CLI tool built off the work in [seeV](https://github.com/nexuist/seev) that assists with facial recognition and labeling tasks. It integrates seamlessly with other shell tools and scripts to provide a simple way to automate tasks that require facial recognition.
+Faceprints is a Swift CLI tool that recognizes faces in photos. It integrates seamlessly with other shell tools and scripts to provide a simple way to automate tasks that require facial recognition. It is built off the work in [seeV](https://github.com/nexuist/seev).
 
 > A `Faceprint` is like a fingerprint for a face. It's a unique embedding that can be used to compare faces and determine if they are the same person.
 

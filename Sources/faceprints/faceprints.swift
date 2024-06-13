@@ -12,7 +12,7 @@ struct Options: ParsableArguments {
 @available(macOS 13.0, *)
 struct faceprints: AsyncParsableCommand {
   static var configuration = CommandConfiguration(
-    abstract: "A command line wrapper over Apple's Vision framework.",
+    abstract: "Recognize faces in photos.",
     version: VERSION,
     subcommands: [
       Classify.self,
