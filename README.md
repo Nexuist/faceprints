@@ -6,6 +6,8 @@ Faceprints is a Swift CLI tool that recognizes faces in photos. It integrates se
 
 Faceprints manages a faceprint index stored in your home directory. You can add and remove faceprints as well as classify faces in arbitrary photos. **It requires no Internet connection or third party models.**
 
+[[ Download Faceprints ]](https://github.com/Nexuist/faceprints/releases)
+
 ## Supported Operations
 
 ### Classify a Photo
@@ -143,7 +145,7 @@ The index is stored in your home directory under the folder `.faceprints` (`/Use
 
 ### Release
 
-A release will be available soon.
+You can download the latest M1 build from the [Releases](https://github.com/Nexuist/faceprints/releases/) page.
 
 ### Build from Source
 
