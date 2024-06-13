@@ -45,6 +45,19 @@ func getLabels() -> [String] {
   return contents.filter { $0.hasDirectoryPath }.map { $0.lastPathComponent }
 }
 
+/// Get the average embeddings for all labels
+func getLabelEmbeddings() -> [String: [Double]] {
+  var labelEmbeddings = [String: [Double]]()
+  for label in getLabels() {
+    let labelDirectory = FACEPRINTS_DIRECTORY.appendingPathComponent(label)
+    let avgEmbeddingURL = labelDirectory.appendingPathComponent("avg.faceprint")
+    let data = try! Data(contentsOf: avgEmbeddingURL)
+    let embeddings = try! JSONSerialization.jsonObject(with: data, options: []) as! [Double]
+    labelEmbeddings[label] = embeddings
+  }
+  return labelEmbeddings
+}
+
 /// Retrieve all images in the label directory
 func imagesForLabel(_ label: String) -> [URL] {
   let labelDirectory = createLabelDirectoryIfNotExists(label: label)
@@ -63,30 +76,35 @@ func facesForImage(_ inputImagePath: String) throws -> [VNFaceObservation] {
   )
 }
 
-func saveCroppedFace(_ inputImagePath: String, face: VNFaceObservation, label: String) throws -> URL
-{
-  // Use the same filename as the input image
+func croppedFace(_ inputImagePath: String, face: VNFaceObservation) throws -> CGImage {
   let inputURL = inputImagePathToURL(inputImagePath)
   let inputImage = CIImage(contentsOf: inputURL)!
-  let labelDirectory = createLabelDirectoryIfNotExists(label: label)
-  let outputURL = labelDirectory.appendingPathComponent(inputURL.lastPathComponent)
-  // Bail if the filename already exists
-  if FileManager.default.fileExists(atPath: outputURL.path) {
-    throw FaceprintsError.faceAlreadySaved
-  }
-  // Crop the face
   let adjustedBoundingBox = CGRect(
     x: face.boundingBox.origin.x * inputImage.extent.width,
     y: face.boundingBox.origin.y * inputImage.extent.height,
     width: face.boundingBox.width * inputImage.extent.width,
     height: face.boundingBox.height * inputImage.extent.height
   )
-  let croppedImage = inputImage.cropped(to: adjustedBoundingBox)
   let context = CIContext(options: nil)
-  let cgImage = context.createCGImage(croppedImage, from: croppedImage.extent)!
+  let croppedImage = inputImage.cropped(to: adjustedBoundingBox)
+  return context.createCGImage(croppedImage, from: croppedImage.extent)!
+}
+
+func saveCroppedFace(_ inputImagePath: String, face: VNFaceObservation, label: String) throws -> URL
+{
+  // Use a UUID as the filename
+  let labelDirectory = createLabelDirectoryIfNotExists(label: label)
+  let outputURL = labelDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension(
+    "png")
+  // Bail if the filename already exists
+  if FileManager.default.fileExists(atPath: outputURL.path) {
+    throw FaceprintsError.faceAlreadySaved
+  }
+  // Save the face
+  let croppedImage = try croppedFace(inputImagePath, face: face)
   let destination = CGImageDestinationCreateWithURL(
     outputURL as CFURL, UTType.png.identifier as CFString, 1, nil)!
-  CGImageDestinationAddImage(destination, cgImage, nil)
+  CGImageDestinationAddImage(destination, croppedImage, nil)
   CGImageDestinationFinalize(destination)
   return outputURL
 }
@@ -96,6 +114,20 @@ func embeddingForImage(_ inputImagePath: String) throws -> [Float] {
   let embeddings: [VNFeaturePrintObservation] = try performRequest(
     request: VNGenerateImageFeaturePrintRequest(),
     inputImagePath: inputImagePath
+  )
+  guard let embedding = embeddings.first else {
+    throw FaceprintsError.noFeaturePrintFound
+  }
+  return embedding.data.withUnsafeBytes {
+    Array($0.bindMemory(to: Float.self))
+  }
+}
+
+/// Overload for CGImage
+func embeddingForImage(_ cgImage: CGImage) throws -> [Float] {
+  let embeddings: [VNFeaturePrintObservation] = try performRequest(
+    request: VNGenerateImageFeaturePrintRequest(),
+    cgImage: cgImage
   )
   guard let embedding = embeddings.first else {
     throw FaceprintsError.noFeaturePrintFound
@@ -126,6 +158,17 @@ func recalculateAverageEmbedding(label: String) {
 func performRequest<T: VNObservation>(request: VNRequest, inputImagePath: String) throws -> [T] {
   let inputURL = inputImagePathToURL(inputImagePath)
   let handler = VNImageRequestHandler(url: inputURL)
+  // Get the type of what the request results are
+  try handler.perform([request])
+  guard let results = request.results else {
+    return []
+  }
+  return results as! [T]
+}
+
+/// Overload for CGImage
+func performRequest<T: VNObservation>(request: VNRequest, cgImage: CGImage) throws -> [T] {
+  let handler = VNImageRequestHandler(cgImage: cgImage)
   // Get the type of what the request results are
   try handler.perform([request])
   guard let results = request.results else {
