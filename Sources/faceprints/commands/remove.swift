@@ -1,6 +1,5 @@
 import ArgumentParser
 import Foundation
-import Helpers
 
 struct Remove: ParsableCommand {
   static var configuration = CommandConfiguration(

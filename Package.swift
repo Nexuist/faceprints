@@ -5,6 +5,9 @@ import PackageDescription
 
 let package = Package(
   name: "faceprints",
+  platforms: [
+    .macOS("13.0")
+  ],
   dependencies: [
     .package(url: "https://github.com/apple/swift-argument-parser", from: "1.2.0")
   ],
