@@ -3,15 +3,20 @@ import Foundation
 
 struct Remove: ParsableCommand {
   static var configuration = CommandConfiguration(
-    abstract: "Remove a faceprint from the index."
+    abstract: "Remove a faceprint from the index"
   )
 
-  @OptionGroup() var args: Options
+  @Argument(help: "The label for the faceprint")
+  var label: String
 
   mutating func run() {
     do {
-      try removeLabelDir(label: args.label)
-      printDict(["status": "success", "message": "Removed faceprint", "label": args.label])
+      let labelDirectory = createLabelDirectoryIfNotExists(label: label)
+      try FileManager.default.removeItem(at: labelDirectory)
+      printDict([
+        "operation": "remove",
+        "label": label,
+      ])
     } catch {
       print("Error: \(error)")
     }

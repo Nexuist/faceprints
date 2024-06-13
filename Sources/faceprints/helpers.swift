@@ -1,13 +1,17 @@
 import CoreImage
 import Foundation
+import UniformTypeIdentifiers
 import Vision
 
 let FACEPRINTS_DIRECTORY = FileManager.default.homeDirectoryForCurrentUser.appending(
   path: ".faceprints")
 
 enum FaceprintsError: Error {
-  case noFeaturePrintFound
   case invalidURL
+  case noFaceFound
+  case multipleFacesFound
+  case noFeaturePrintFound
+  case faceAlreadySaved
 }
 
 /// Convert the input image path to a URL
@@ -59,10 +63,32 @@ func facesForImage(_ inputImagePath: String) throws -> [VNFaceObservation] {
   )
 }
 
-func saveCroppedFace(_ inputImagePath: String, face: VNFaceObservation, label: String) {
+func saveCroppedFace(_ inputImagePath: String, face: VNFaceObservation, label: String) throws -> URL
+{
   // Use the same filename as the input image
+  let inputURL = inputImagePathToURL(inputImagePath)
+  let inputImage = CIImage(contentsOf: inputURL)!
+  let labelDirectory = createLabelDirectoryIfNotExists(label: label)
+  let outputURL = labelDirectory.appendingPathComponent(inputURL.lastPathComponent)
   // Bail if the filename already exists
-  // pass
+  if FileManager.default.fileExists(atPath: outputURL.path) {
+    throw FaceprintsError.faceAlreadySaved
+  }
+  // Crop the face
+  let adjustedBoundingBox = CGRect(
+    x: face.boundingBox.origin.x * inputImage.extent.width,
+    y: face.boundingBox.origin.y * inputImage.extent.height,
+    width: face.boundingBox.width * inputImage.extent.width,
+    height: face.boundingBox.height * inputImage.extent.height
+  )
+  let croppedImage = inputImage.cropped(to: adjustedBoundingBox)
+  let context = CIContext(options: nil)
+  let cgImage = context.createCGImage(croppedImage, from: croppedImage.extent)!
+  let destination = CGImageDestinationCreateWithURL(
+    outputURL as CFURL, UTType.png.identifier as CFString, 1, nil)!
+  CGImageDestinationAddImage(destination, cgImage, nil)
+  CGImageDestinationFinalize(destination)
+  return outputURL
 }
 
 /// Calculate the embedding for the input image
@@ -80,7 +106,20 @@ func embeddingForImage(_ inputImagePath: String) throws -> [Float] {
 }
 
 func recalculateAverageEmbedding(label: String) {
-  // Save result to {labelDir}/avg.faceprint
+  // Create the label directory if it does not exist
+  let labelDirectory = createLabelDirectoryIfNotExists(label: label)
+  // Get all the images
+  let images = imagesForLabel(label)
+  // Get the embeddings for each image
+  let embeddings = images.compactMap { try? embeddingForImage($0.path) }
+  // Calculate the average embedding
+  let averageEmbedding = embeddings.reduce([Float](repeating: 0, count: 768)) { acc, embedding in
+    zip(acc, embedding).map(+)
+  }.map { $0 / Float(embeddings.count) }
+  // Save the average embedding to {labelDir}/avg.faceprint as a JSON file
+  let avgEmbeddingURL = labelDirectory.appendingPathComponent("avg.faceprint")
+  let jsonData = try! JSONSerialization.data(withJSONObject: averageEmbedding, options: [])
+  try! jsonData.write(to: avgEmbeddingURL)
 }
 
 /// Perform a Vision request on the input image and return the results as an array of the specified type
@@ -95,38 +134,15 @@ func performRequest<T: VNObservation>(request: VNRequest, inputImagePath: String
   return results as! [T]
 }
 
-/// Crop the input image using the specified bounding box and return the result as a CGImage
-// func cropImage(inputImagePath: String, boundingBox: CGRect) throws -> CGImage {
-//   let inputURL = inputImagePathToURL(inputImagePath)
-//   let inputImage = CIImage(contentsOf: inputURL)!
-//   let adjustedBoundingBox = CGRect(
-//     x: boundingBox.origin.x * inputImage.extent.width,
-//     y: boundingBox.origin.y * inputImage.extent.height,
-//     width: boundingBox.width * inputImage.extent.width,
-//     height: boundingBox.height * inputImage.extent.height
-//   )
-//   let croppedImage = inputImage.cropped(to: adjustedBoundingBox)
-//   let context = CIContext(options: nil)
-//   let cgImage = context.createCGImage(croppedImage, from: croppedImage.extent)!
-//   return cgImage
-// }
-
-// func saveCGImage(_ cgImage: CGImage, name: String, label: String) {
-//   // pass
-// }
-
-/// Save the output image to the specified path
-// @available(macOS 11.0, *)
-// func saveOutput(output: CGImage, outputImagePath: String) {
-//   let outputURL = URL(fileURLWithPath: outputImagePath)
-//   let destination = CGImageDestinationCreateWithURL(
-//     outputURL as CFURL, UTType.png.identifier as CFString, 1, nil)!
-//   CGImageDestinationAddImage(destination, output, nil)
-//   CGImageDestinationFinalize(destination)
-// }
-
 /// Print a JSON dictionary to stdout
 func printDict(_ dict: [String: Any]) {
   let jsonData = try! JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted)
   print(String(data: jsonData, encoding: .utf8)!)
+}
+
+func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {
+  let dotProduct = zip(a, b).map(*).reduce(0, +)
+  let magnitudeA = sqrt(a.map { $0 * $0 }.reduce(0, +))
+  let magnitudeB = sqrt(b.map { $0 * $0 }.reduce(0, +))
+  return dotProduct / (magnitudeA * magnitudeB)
 }

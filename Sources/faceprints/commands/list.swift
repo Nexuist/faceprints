@@ -3,15 +3,14 @@ import Foundation
 
 struct List: ParsableCommand {
   static var configuration = CommandConfiguration(
-    abstract: "List all faceprints in the index."
+    abstract: "List all faceprints in the index"
   )
 
   mutating func run() {
-    do {
-      let labels = try listLabels()
-      printDict(["faceprints": labels])
-    } catch {
-      print("Error: \(error)")
-    }
+    let labels = getLabels()
+    printDict([
+      "operation": "list",
+      "labels": labels,
+    ])
   }
 }
